@@ -67,4 +67,18 @@ g2 <- g1 + geom_line()
 g3 <- g2 + facet_grid(country ~ sex)
 g3
 
+################################################################################################
+
+# rates: 
+
+rates <- counts
+rates$death_count <- NULL
+rates$population_count <- NULL
+rates <- subset(rates, sex!="total")
+rates_wide <- recast(rates, formula=country + year + age ~ sex, id.var=.(country, year, age, sex))
+rates_wide <- mutate(rates_wide, difference = male-female, ratio=male/female)
+
+
+
+
 
