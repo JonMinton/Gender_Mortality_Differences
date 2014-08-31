@@ -22,6 +22,7 @@ RequiredPackages(
     "plyr",
     "reshape2",
     "lattice",
+    "latticeExtra",
     "repmis",
     "RCurl",
     "devtools",
@@ -29,7 +30,8 @@ RequiredPackages(
     "digest",
     "ggplot2",
     "stringr",
-    "car"
+    "car",
+    "RColorBrewer"
   )
 )
 
@@ -72,12 +74,92 @@ g3
 # rates: 
 
 rates <- counts
+rates <- mutate(rates, death_rate = death_count/population_count)
+
 rates$death_count <- NULL
 rates$population_count <- NULL
-rates <- subset(rates, sex!="total")
+rates <- subset(rates, sex!="total" & age <=80)
 rates_wide <- recast(rates, formula=country + year + age ~ sex, id.var=.(country, year, age, sex))
-rates_wide <- mutate(rates_wide, difference = male-female, ratio=male/female)
+rates_wide <- mutate(rates_wide, 
+                     difference = male-female,
+                     ratio=male/female,
+                     
+                     log_ratio = log(ratio),
+                     per_thousand = difference * 1000
+                     )
 
+rates_wide$ratio[is.nan(rates_wide$ratio)] <- NA
+rates_wide$log_ratio[is.nan(rates_wide$log_ratio)] <- NA
+rates_wide$ratio[is.infinite(rates_wide$ratio)] <- NA
+rates_wide$log_ratio[is.infinite(rates_wide$log_ratio)] <- NA
+
+
+####################################################################################
+
+# TO DO
+# 1) Function for d_ply for automation production for different 
+# countries
+# 2) change labels of legends to reflect rates per 1000
+# 3) automate range considered for country
+
+draw_fun <- function(this_country){
+  p1 <- levelplot(
+    log_ratio ~ year * age , 
+    data = subset(
+      rates_wide,
+      subset= country==this_country & age <=60
+    ),
+    cuts=50,
+    at = seq(from= -5, to = 5, by=0.25),
+    col.regions = colorRampPalette(rev(brewer.pal(5, "RdBu")))(64),
+    main = "Excess male deaths per thousand female deaths"
+  )
+  
+  
+  p2 <- contourplot(
+    per_thousand ~ year * age, 
+    data = subset(
+      rates_wide,
+      subset=country==this_country & age <=60
+    ), 
+    cuts=40)
+  
+  print(p1 + p2)
+}
+
+
+
+dev.off()
+
+
+
+
+png(
+  "figures/contourresiduals_later14europe_identity.png",  
+  height=1000, width=2000
+)
+dta_ss <- subset(exp_14_all, subset=sex!="total" & age >= 20 &age <= 50 & year >= 1970)
+
+
+
+
+mx <- max(abs(dta_ss$residual_prop))
+
+lims <- seq(from= -18, to = 18, by=2)
+lims <- lims[c(-1, -length(lims))]
+cols_to_use <- brewer.pal(5, "RdBu") # red-blue diverging scale
+# interpolate to more colours
+cols_to_use.fn <- colorRampPalette(cols_to_use)
+contourplot(
+  log(ratio) ~ year * age, 
+  data=subset(rates_wide, subset=country=="USA" & age <=80), 
+  region=T, 
+  cuts=10,
+#  at=lims,
+  col.regions=rev(cols_to_use.fn(200)), 
+#  main="population errors (persons per thousand), identity scale; European subset "
+)
+dev.off()
 
 
 
