@@ -102,34 +102,56 @@ rates_wide$log_ratio[is.infinite(rates_wide$log_ratio)] <- NA
 # 2) change labels of legends to reflect rates per 1000
 # 3) automate range considered for country
 
-draw_fun <- function(this_country){
+draw_fun <- function(this_country, dta=rates_wide, max_age=60, 
+                     out_dir="images/excess/"
+                       ){
   p1 <- levelplot(
     log_ratio ~ year * age , 
     data = subset(
-      rates_wide,
-      subset= country==this_country & age <=60
+      dta,
+      subset= country==this_country & age <= max_age
     ),
     cuts=50,
     at = seq(from= -5, to = 5, by=0.25),
     col.regions = colorRampPalette(rev(brewer.pal(5, "RdBu")))(64),
-    main = "Excess male deaths per thousand female deaths"
+    main = paste0(
+      "Excess male deaths per thousand female deaths"
+      )
   )
   
   
   p2 <- contourplot(
     per_thousand ~ year * age, 
     data = subset(
-      rates_wide,
-      subset=country==this_country & age <=60
+      dta,
+      subset=country==this_country & age <= max_age
     ), 
     cuts=40)
-  
-  print(p1 + p2)
+  png(
+    filename=paste0(
+      out_dir,
+      "excess_",
+      this_country,
+      ".png",
+      width=1000,
+      height=1000
+      ),
+    )
+  out <- p1 + p2
 }
 
+draw_outer <- function(){
+  
+}
+d_ply(
+  rates_wide, 
+  .(country),
+  draw_fun
+      )
 
 
-dev.off()
+
+#################################################################
 
 
 
