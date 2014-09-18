@@ -85,7 +85,7 @@ rates_wide <- mutate(rates_wide,
                      ratio=male/female,
                      
                      log_ratio = log(ratio),
-                     per_thousand = difference * 1000
+                     per_10thousand = difference * 10000
                      )
 
 rates_wide$ratio[is.nan(rates_wide$ratio)] <- NA
@@ -102,87 +102,72 @@ rates_wide$log_ratio[is.infinite(rates_wide$log_ratio)] <- NA
 # 2) change labels of legends to reflect rates per 1000
 # 3) automate range considered for country
 
-draw_fun <- function(this_country, dta=rates_wide, max_age=60, 
+draw_fun <- function(x, max_age=50, 
+                    min_year=1950, 
+                    max_year=2000,
                      out_dir="images/excess/"
                        ){
+  
+  min_year <- max(
+    min(x$year),
+    min_year
+    )
+  
+  max_year <- min(
+    max(x$year),
+    max_year
+    )
+  
+  
   p1 <- levelplot(
     log_ratio ~ year * age , 
     data = subset(
-      dta,
-      subset= country==this_country & age <= max_age
+      x,
+      subset= age <= max_age & year >=min_year & year <=max_year
     ),
-    cuts=50,
-    at = seq(from= -5, to = 5, by=0.25),
+    at = seq(from= -4, to = 4, by=0.25),
     col.regions = colorRampPalette(rev(brewer.pal(5, "RdBu")))(64),
-    main = paste0(
-      "Excess male deaths per thousand female deaths"
-      )
+    main = NULL
   )
   
   
   p2 <- contourplot(
-    per_thousand ~ year * age, 
+    per_10thousand ~ year * age, 
     data = subset(
-      dta,
-      subset=country==this_country & age <= max_age
+      x,
+      subset= age <= max_age & year >=min_year & year <=max_year
     ), 
-    cuts=40)
+    at=seq(
+      from=-300,
+      to=300,
+      by=5
+      )
+    )
+  
+  p3 <- p1 + p2
+  
+  this_country <- x$country[1]
+  
   png(
     filename=paste0(
       out_dir,
       "excess_",
       this_country,
-      ".png",
-      width=1000,
-      height=1000
-      ),
-    )
-  out <- p1 + p2
-}
-
-draw_outer <- function(){
-  
-}
-d_ply(
-  rates_wide, 
-  .(country),
-  draw_fun
+      ".png"),
+    width=1000,
+    height=1000
       )
+  print(p3)
+  
+  dev.off()  
+}
 
-
-
-#################################################################
-
-
-
-
-png(
-  "figures/contourresiduals_later14europe_identity.png",  
-  height=1000, width=2000
-)
-dta_ss <- subset(exp_14_all, subset=sex!="total" & age >= 20 &age <= 50 & year >= 1970)
-
-
-
-
-mx <- max(abs(dta_ss$residual_prop))
-
-lims <- seq(from= -18, to = 18, by=2)
-lims <- lims[c(-1, -length(lims))]
-cols_to_use <- brewer.pal(5, "RdBu") # red-blue diverging scale
-# interpolate to more colours
-cols_to_use.fn <- colorRampPalette(cols_to_use)
-contourplot(
-  log(ratio) ~ year * age, 
-  data=subset(rates_wide, subset=country=="USA" & age <=80), 
-  region=T, 
-  cuts=10,
-#  at=lims,
-  col.regions=rev(cols_to_use.fn(200)), 
-#  main="population errors (persons per thousand), identity scale; European subset "
-)
-dev.off()
-
-
+d_ply(
+  rates_wide,
+  .(country),
+  draw_fun,
+  max_age=60,
+  .progress="text"
+  )
 
 
