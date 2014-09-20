@@ -69,6 +69,42 @@ g2 <- g1 + geom_line()
 g3 <- g2 + facet_grid(country ~ sex)
 g3
 
+
+#########################
+
+### What I want now: 
+
+# tile wrap
+# male and females as different lines on same graphs
+# ratios as separate tile wrap
+
+png("images/male_female_mort_tile_2005.png", height=1000, width=800)
+g1 <- ggplot(
+  subset(counts, year==2005 & sex!="total" & age <=80),
+  aes(x=age, y=death_rate)
+  )
+
+g2 <- g1 + geom_line(aes(colour=sex, linetype=sex))
+g3 <- g2 + facet_wrap(~ country, ncol=5)
+g4 <- g3 + labs(y="Death rate", x="Age (years)") 
+g5 <- g4 + scale_y_log10()
+g6 <- g5 + theme_minimal()
+print(g6)
+
+dev.off()
+
+# To do : 
+# 1) make country labels neater
+# 2) remove countries with few observations
+# 3) fix Germany (East, West etc)?
+# 4) consider doing for other years
+
+# 
+#### males per female
+
+
+
+
 ################################################################################################
 
 # rates: 
@@ -94,6 +130,41 @@ rates_wide$ratio[is.infinite(rates_wide$ratio)] <- NA
 rates_wide$log_ratio[is.infinite(rates_wide$log_ratio)] <- NA
 
 
+##################
+png("images/ratios_2005.png", height=1000, width=800)
+
+g1 <- ggplot(
+  data=subset(
+    rates_wide,
+    subset=age <=60 & year==2005
+  ),
+  aes(x=age, y=ratio)
+  )
+
+g2 <- g1 + geom_line()
+g3 <- g2 + facet_wrap(~ country, ncol=5)
+g4 <- g3 + labs(y="Mortality rate ratio", x="Age (years)") 
+g5 <- g4 + scale_y_log10()
+g6 <- g5 + theme_minimal()
+print(g6)
+dev.off()
+############################################
+
+
+g1 <- ggplot(
+  data=subset(
+    rates_wide,
+    subset=age <=60 & year==1970
+  ),
+  aes(x=age, y=ratio)
+)
+
+g2 <- g1 + geom_line()
+g3 <- g2 + facet_wrap(~ country, ncol=5)
+g4 <- g3 + labs(y="Mortality rate ratio", x="Age (years)") 
+g5 <- g4 + scale_y_log10()
+g6 <- g5 + theme_minimal()
+print(g6)
 ####################################################################################
 
 # TO DO
