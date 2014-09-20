@@ -117,7 +117,12 @@ draw_fun <- function(x, max_age=50,
     max(x$year),
     max_year
     )
-  
+  tmp <- max(
+    abs(c(min(x$log_ratio, na.rm=T), max(x$log_ratio, na.rm=T)))
+    )
+  tmp <- tmp - (tmp %% 0.25) + 0.25
+  scale_limit <- max(4, tmp)
+  rm(tmp)  
   
   p1 <- levelplot(
     log_ratio ~ year * age , 
@@ -125,10 +130,17 @@ draw_fun <- function(x, max_age=50,
       x,
       subset= age <= max_age & year >=min_year & year <=max_year
     ),
-    at = seq(from= -4, to = 4, by=0.25),
+    at = seq(from= -scale_limit, to = scale_limit, by=0.25),
     col.regions = colorRampPalette(rev(brewer.pal(5, "RdBu")))(64),
     main = NULL
   )
+  
+  tmp <- max(
+    abs(c(min(x$per_10thousand, na.rm=T), max(x$per_10thousand, na.rm=T)))
+  )
+  tmp <- tmp - (tmp %% 5) + 5
+  scale_limit <- max(300, tmp)
+  rm(tmp)  
   
   
   p2 <- contourplot(
@@ -138,8 +150,8 @@ draw_fun <- function(x, max_age=50,
       subset= age <= max_age & year >=min_year & year <=max_year
     ), 
     at=seq(
-      from=-300,
-      to=300,
+      from=-scale_limit,
+      to=scale_limit,
       by=5
       )
     )
