@@ -19,6 +19,7 @@ source("Scripts/LoadPackages.R")
 
 RequiredPackages(
   c(
+    "animation",
     "plyr",
     "reshape2",
     "lattice",
@@ -39,36 +40,8 @@ RequiredPackages(
 # Counts is the population count and death count data from the HMD in a single file
 # The script for creating this file is available from Jonathan Minton
 # please contact nate.minton@gmail.com for further information
-counts <- read.csv("data/counts.csv")
 
-# create a synthetic cohort for the following countries:
-# i) Norway
-# ii) France
-# iii) USA
-
-counts <- mutate(counts, death_rate=death_count/population_count)
-
-rates_subset <- subset(counts, 
-                       subset=country=="NOR" | country=="FRATNP" | country=="USA",
-                       select=c("country", "year" ,"age", "sex", "death_rate")
-                       )
-
-# For these plot the data on a bathtub curve along with the ratio between genders
-
-# Look at up to the age of 50
-rates_subset <- subset(rates_subset, subset=age<=50)
-
-# for each country, 
-# find the last year
-ddply(rates_subset, .(country), function(x) max(x$year))
-# This shows the newest common year is 2009
-rates_subset <- mutate(rates_subset, cohort_year=year - age)
-
-g1 <- ggplot(subset(rates_subset, year==2009), aes(x=age, y=log(death_rate), group=sex))
-g2 <- g1 + geom_line()
-g3 <- g2 + facet_grid(country ~ sex)
-g3
-
+source("scripts/manage_data.r")
 
 #########################
 
@@ -79,8 +52,10 @@ g3
 # ratios as separate tile wrap
 
 png("images/male_female_mort_tile_2005.png", height=1000, width=800)
+this_year <- 2005
+
 g1 <- ggplot(
-  subset(counts, year==2005 & sex!="total" & age <=80),
+  subset(rates, year==this_year & sex!="total" & age <=80),
   aes(x=age, y=death_rate)
   )
 
@@ -88,10 +63,38 @@ g2 <- g1 + geom_line(aes(colour=sex, linetype=sex))
 g3 <- g2 + facet_wrap(~ country, ncol=5)
 g4 <- g3 + labs(y="Death rate", x="Age (years)") 
 g5 <- g4 + scale_y_log10()
-g6 <- g5 + theme_minimal()
+g6 <- g5 + theme_minimal() + ggtitle(this_year)
 print(g6)
 
 dev.off()
+
+# Spool the above for all years
+
+spool_bathtubs <- function(this_year, dta=rates, min_age = 0, max_age = 80){
+  png(
+    paste0("images/bathtubs/bathtubs_", this_year, ".png"),
+    height=1000, width=800
+  )
+  
+  g1 <- ggplot(
+    subset(
+      dta, 
+      subset= (year==this_year & sex !="total" & age <= max_age & age >= min_age)
+      ),
+    aes(x=age, y=death_rate)
+  )
+  g2 <- g1 + geom_line(aes(colour=sex, linetype=sex))
+  g3 <- g2 + facet_wrap(~ country, ncol=5)
+  g4 <- g3 + labs(y="Death rate", x="Age (years)") 
+  g5 <- g4 + scale_y_log10(limits=c(0.0001, 0.1))
+  g6 <- g5 + theme_minimal() + ggtitle(this_year)
+  print(g6)
+  dev.off()
+}
+
+years <- 1900:2010
+
+l_ply(years, spool_bathtubs)
 
 # To do : 
 # 1) make country labels neater
@@ -104,50 +107,34 @@ dev.off()
 
 
 
-
-################################################################################################
-
-# rates: 
-
-rates <- counts
-rates <- mutate(rates, death_rate = death_count/population_count)
-
-rates$death_count <- NULL
-rates$population_count <- NULL
-rates <- subset(rates, sex!="total" & age <=80)
-rates_wide <- recast(rates, formula=country + year + age ~ sex, id.var=.(country, year, age, sex))
-rates_wide <- mutate(rates_wide, 
-                     difference = male-female,
-                     ratio=male/female,
-                     
-                     log_ratio = log(ratio),
-                     per_10thousand = difference * 10000
-                     )
-
-rates_wide$ratio[is.nan(rates_wide$ratio)] <- NA
-rates_wide$log_ratio[is.nan(rates_wide$log_ratio)] <- NA
-rates_wide$ratio[is.infinite(rates_wide$ratio)] <- NA
-rates_wide$log_ratio[is.infinite(rates_wide$log_ratio)] <- NA
-
-
 ##################
-png("images/ratios_2005.png", height=1000, width=800)
 
-g1 <- ggplot(
-  data=subset(
-    rates_wide,
-    subset=age <=60 & year==2005
-  ),
-  aes(x=age, y=ratio)
+spool_ratios <- function(this_year, dta=rates_wide, min_age = 0, max_age = 60){
+  png(
+    paste0("images/ratios/ratios_", this_year, ".png"),
+    height=1000, width=800
   )
+  
+  g1 <- ggplot(
+    subset(
+      dta, 
+      subset= (year==this_year & age <= max_age & age >= min_age)
+    ),
+    aes(x=age, y=ratio)
+  )
+  g2 <- g1 + geom_line()
+  g3 <- g2 + facet_wrap(~ country, ncol=5)
+  g4 <- g3 + labs(y="Mortality rate ratio", x="Age (years)") 
+  g5 <- g4 + scale_y_log10(limits=c(0.1, 100))
+  g6 <- g5 + theme_minimal() + ggtitle(this_year)
+  print(g6)
+  dev.off()
+}
 
-g2 <- g1 + geom_line()
-g3 <- g2 + facet_wrap(~ country, ncol=5)
-g4 <- g3 + labs(y="Mortality rate ratio", x="Age (years)") 
-g5 <- g4 + scale_y_log10()
-g6 <- g5 + theme_minimal()
-print(g6)
-dev.off()
+years <- 1900:2010
+
+l_ply(years, spool_ratios)
+
 ############################################
 
 
