@@ -244,3 +244,60 @@ d_ply(
   )
 
 
+
+#########################################################################################
+# age-mortality, males and females, and ratios, for USA, in years 1933 and 2010
+
+rates_usa <- subset(
+  rates, 
+  subset=country=="USA" & (year == 1933 | year == 2010) & sex !="total" 
+  )
+
+
+
+png("images/usa_1933_2010.png", height=500, width=800)
+
+g1 <- ggplot(
+  subset(rates_usa, subet = age <= 80),
+  aes(x=age, y=death_rate)
+)
+
+g2 <- g1 + geom_line(aes(colour=sex, linetype=sex))
+g3 <- g2 + facet_wrap(~ year)
+g4 <- g3 + labs(y="Death rate", x="Age (years)") 
+g5 <- g4 + scale_y_log10()
+g6 <- g5 + theme_minimal() 
+print(g6)
+
+dev.off()
+
+# rate ratios
+
+## PROBLEM: y axis is not labelled; using the breaks and labels function
+# does not solve this. 
+
+# TO DO : FIGURE OUT HOW TO GET THIS TO WORK!
+
+rates_ratio_usa <- subset(
+  rates_wide,
+  subset=country=="USA" & (year == 1933 | year == 2010)
+  )
+
+png("images/usa_1933_2010_ratios.png", height=500, width=800)
+
+g1 <- ggplot(
+  subset(rates_ratio_usa, subet = age <= 80),
+  aes(x=age, y=ratio)
+)
+
+g2 <- g1 + geom_line()
+g3 <- g2 + facet_wrap(~ year)
+g4 <- g3 + labs(y="Ratio of death rates (male:female)", x="Age (years)") 
+g5 <- g4 + scale_y_log10(breaks=c(.01,.1,1,10,100), labels=c(.01,.1,1,10,100))
+g6 <- g5 
+print(g6)
+
+dev.off()
+
+# 
+
