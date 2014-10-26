@@ -161,7 +161,7 @@ print(g6)
 # 3) automate range considered for country
 
 draw_fun <- function(x, max_age=50, 
-                    min_year=1950, 
+                    min_year=1933, 
                     max_year=2000,
                      out_dir="images/excess/"
                        ){
