@@ -230,9 +230,9 @@ draw_fun <- function(x, max_age=50,
   print(p3)
   
   dev.off()  
-  while(names(dev.cur())[1] !="RStudioGD"){
-    dev.off()
-  }
+#   while(names(dev.cur())[1] !=("RStudioGD" | "null device")){
+#     dev.off()
+#   }
 }
 
 d_ply(
