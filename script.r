@@ -162,7 +162,7 @@ print(g6)
 
 draw_fun <- function(x, max_age=50, 
                     min_year=1933, 
-                    max_year=2000,
+                    max_year=2010,
                      out_dir="images/excess/"
                        ){
   
