@@ -161,8 +161,8 @@ print(g6)
 # 3) automate range considered for country
 
 draw_fun <- function(x, max_age=50, 
-                    min_year=1950, 
-                    max_year=2000,
+                    min_year=1933, 
+                    max_year=2010,
                      out_dir="images/excess/"
                        ){
   
@@ -230,9 +230,9 @@ draw_fun <- function(x, max_age=50,
   print(p3)
   
   dev.off()  
-  while(names(dev.cur())[1] !="RStudioGD"){
-    dev.off()
-  }
+#   while(names(dev.cur())[1] !=("RStudioGD" | "null device")){
+#     dev.off()
+#   }
 }
 
 d_ply(
