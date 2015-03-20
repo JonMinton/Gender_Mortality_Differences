@@ -271,33 +271,134 @@ print(g6)
 
 dev.off()
 
-# rate ratios
 
-## PROBLEM: y axis is not labelled; using the breaks and labels function
-# does not solve this. 
+### Excess plots as levelplots only - reds only - dif scale
 
-# TO DO : FIGURE OUT HOW TO GET THIS TO WORK!
 
-rates_ratio_usa <- subset(
-  rates_wide,
-  subset=country=="USA" & (year == 1933 | year == 2010)
+# TO DO
+# 1) Function for d_ply for automation production for different 
+# countries
+# 2) change labels of legends to reflect rates per 1000
+# 3) automate range considered for country
+
+draw_fun <- function(x, max_age=50, 
+                     min_year=1950, 
+                     max_year=2000,
+                     out_dir="images/excess_level_reds/"
+){
+  
+  min_year <- max(
+    min(x$year),
+    min_year
   )
+  
+  max_year <- min(
+    max(x$year),
+    max_year
+  )
+  x$log_ratio[x$log_ratio < 0] <- 0
+  
+  tmp <- max(
+    abs(c(min(x$log_ratio, na.rm=T), max(x$log_ratio, na.rm=T)))
+  )
+  tmp <- tmp - (tmp %% 0.125) + 0.125
+  scale_limit <- max(2, tmp)
+  rm(tmp)  
+  
+  p1 <- levelplot(
+    log_ratio ~ year * age , 
+    data = subset(
+      x,
+      subset= age <= max_age & year >=min_year & year <=max_year
+    ),
+    at = seq(from= 0, to = scale_limit, by=0.125),
+    col.regions = colorRampPalette(brewer.pal(5, "Reds"))(64),
+    main = NULL
+  )
+   
+  this_country <- x$country[1]
+  
+  png(
+    filename=paste0(
+      out_dir,
+      "excess_",
+      this_country,
+      ".png"),
+    width=1000,
+    height=1000
+  )
+  print(p1)
+  
+  dev.off()  
 
-png("images/usa_1933_2010_ratios.png", height=500, width=800)
+}
 
-g1 <- ggplot(
-  subset(rates_ratio_usa, subet = age <= 80),
-  aes(x=age, y=ratio)
+d_ply(
+  rates_wide,
+  .(country),
+  draw_fun,
+  max_age=60,
+  .progress="text"
 )
 
-g2 <- g1 + geom_line()
-g3 <- g2 + facet_wrap(~ year)
-g4 <- g3 + labs(y="Ratio of death rates (male:female)", x="Age (years)") 
-g5 <- g4 + scale_y_log10(breaks=c(.01,.1,1,10,100), labels=c(.01,.1,1,10,100))
-g6 <- g5 
-print(g6)
 
-dev.off()
+#### Levelplot only 
 
-# 
+draw_fun <- function(x, max_age=50, 
+                     min_year=1950, 
+                     max_year=2000,
+                     out_dir="images/excess_level/"
+){
+  
+  min_year <- max(
+    min(x$year),
+    min_year
+  )
+  
+  max_year <- min(
+    max(x$year),
+    max_year
+  )
+  tmp <- max(
+    abs(c(min(x$log_ratio, na.rm=T), max(x$log_ratio, na.rm=T)))
+  )
+  tmp <- tmp - (tmp %% 0.25) + 0.25
+  scale_limit <- max(4, tmp)
+  rm(tmp)  
+  
+  p1 <- levelplot(
+    log_ratio ~ year * age , 
+    data = subset(
+      x,
+      subset= age <= max_age & year >=min_year & year <=max_year
+    ),
+    at = seq(from= -scale_limit, to = scale_limit, by=0.25),
+    col.regions = colorRampPalette(rev(brewer.pal(5, "RdBu")))(64),
+    main = NULL
+  )
+  
+  this_country <- x$country[1]
+  
+  png(
+    filename=paste0(
+      out_dir,
+      "excess_",
+      this_country,
+      ".png"),
+    width=1000,
+    height=1000
+  )
+  print(p1)
+  
+  dev.off()  
+  
+}
+
+d_ply(
+  rates_wide,
+  .(country),
+  draw_fun,
+  max_age=60,
+  .progress="text"
+)
 
