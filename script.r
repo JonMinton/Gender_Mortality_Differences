@@ -157,7 +157,7 @@ print(g6)
 # TO DO
 # 1) Function for d_ply for automation production for different 
 # countries
-# 2) change labels of legends to reflect rates per 1000
+# 2) change labels of legends to reflect rates per 10000
 # 3) automate range considered for country
 
 draw_fun <- function(x, max_age=50, 
@@ -278,7 +278,7 @@ dev.off()
 # TO DO
 # 1) Function for d_ply for automation production for different 
 # countries
-# 2) change labels of legends to reflect rates per 1000
+# 2) change labels of legends to reflect rates per 10000
 # 3) automate range considered for country
 
 draw_fun <- function(x, max_age=50, 
