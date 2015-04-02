@@ -190,7 +190,11 @@ draw_fun <- function(x, max_age=50,
     ),
     at = seq(from= -scale_limit, to = scale_limit, by=0.25),
     col.regions = colorRampPalette(rev(brewer.pal(5, "RdBu")))(64),
-    main = NULL
+    main = NULL,
+    xlab=list(label="Year", cex=2),
+    ylab=list(label="Age", cex=2),
+    scales=list(cex=2),
+    colorkey=list(labels=list(cex=2))
   )
   
   tmp <- max(
@@ -211,7 +215,9 @@ draw_fun <- function(x, max_age=50,
       from=-scale_limit,
       to=scale_limit,
       by=5
-      )
+      ),
+    col="grey",
+    labels=list(col="black", cex=1.5, fontface="bold")
     )
   
   p3 <- p1 + p2
@@ -313,7 +319,11 @@ draw_fun <- function(x, max_age=50,
     ),
     at = seq(from= 0, to = scale_limit, by=0.125),
     col.regions = colorRampPalette(brewer.pal(5, "Reds"))(64),
-    main = NULL
+    main = NULL,
+    xlab=list(label="Year", cex=2),
+    ylab=list(label="Age", cex=2),
+    scales=list(cex=2),
+    colorkey=list(labels=list(cex=2))
   )
    
   this_country <- x$country[1]
@@ -374,7 +384,11 @@ draw_fun <- function(x, max_age=50,
     ),
     at = seq(from= -scale_limit, to = scale_limit, by=0.25),
     col.regions = colorRampPalette(rev(brewer.pal(5, "RdBu")))(64),
-    main = NULL
+    main = NULL,
+    xlab=list(label="Year", cex=2),
+    ylab=list(label="Age", cex=2),
+    scales=list(cex=2),
+    colorkey=list(labels=list(cex=2))
   )
   
   this_country <- x$country[1]
