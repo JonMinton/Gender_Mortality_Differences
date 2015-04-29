@@ -355,7 +355,7 @@ derived_2$country <- revalue(
 )
 
 derived_2 <- derived_2 %>%
-  filter(year >=1933 & year <= 2010)
+  filter(year >=1933 & year <= 2010 & age <=60)
 
 derived_2$country <- droplevels(derived_2$country)
 
@@ -368,7 +368,7 @@ levels(derived_2$country) <- c(
 levels(derived_2$country) <- rev(levels(derived_2$country))
 
 tmp <- max(
-  abs(c(min(x$log_ratio, na.rm=T), max(x$log_ratio, na.rm=T)))
+  abs(c(min(derived_2$log_ratio, na.rm=T), max(derived_2$log_ratio, na.rm=T)))
 )
 tmp <- tmp - (tmp %% 0.25) + 0.25
 scale_limit <- max(4, tmp)
@@ -388,7 +388,7 @@ p1 <- levelplot(
 )
 
 tmp <- max(
-  abs(c(min(x$per_10thousand_smoothed, na.rm=T), max(x$per_10thousand_smoothed, na.rm=T)))
+  abs(c(min(derived_2$per_10thousand_smoothed, na.rm=T), max(derived_2$per_10thousand_smoothed, na.rm=T)))
 )
 tmp <- tmp - (tmp %% 5) + 5
 scale_limit <- max(300, tmp)
