@@ -46,118 +46,17 @@ RequiredPackages(
 # The script for creating this file is available from Jonathan Minton
 # please contact nate.minton@gmail.com for further information
 
-source("scripts/manage_data.r")
 
-#########################
-
-### What I want now: 
-
-
-# Bathtub curves, period, 2005 --------------------------------------------
-
-png("images/male_female_mort_tile_2005.png", height=1000, width=800)
-this_year <- 2005
-
-g1 <- ggplot(
-  subset(rates, year==this_year & sex!="total" & age <=80),
-  aes(x=age, y=death_rate)
-  )
-
-g2 <- g1 + geom_line(aes(colour=sex, linetype=sex))
-g3 <- g2 + facet_wrap(~ country, ncol=5)
-g4 <- g3 + labs(y="Death rate", x="Age (years)") 
-g5 <- g4 + scale_y_log10()
-g6 <- g5 + theme_minimal() + ggtitle(this_year)
-print(g6)
-
-dev.off()
-
-# Bathtub curves, period, spool by year -----------------------------------
-
-spool_bathtubs <- function(this_year, dta=rates, min_age = 0, max_age = 80){
-  png(
-    paste0("images/bathtubs/bathtubs_", this_year, ".png"),
-    height=1000, width=800
-  )
-  
-  g1 <- ggplot(
-    subset(
-      dta, 
-      subset= (year==this_year & sex !="total" & age <= max_age & age >= min_age)
-      ),
-    aes(x=age, y=death_rate)
-  )
-  g2 <- g1 + geom_line(aes(colour=sex, linetype=sex))
-  g3 <- g2 + facet_wrap(~ country, ncol=5)
-  g4 <- g3 + labs(y="Death rate", x="Age (years)") 
-  g5 <- g4 + scale_y_log10(limits=c(0.0001, 0.1))
-  g6 <- g5 + theme_minimal() + ggtitle(this_year)
-  print(g6)
-  dev.off()
-}
-
-years <- 1900:2010
-
-l_ply(years, spool_bathtubs)
+# Data from HMD -----------------------------------------------------------
 
 
 
-
-# Ratio curves, period, spool by year -------------------------------------
-
-
-spool_ratios <- function(this_year, dta=rates_wide, min_age = 0, max_age = 60){
-  png(
-    paste0("images/ratios/ratios_", this_year, ".png"),
-    height=1000, width=800
-  )
-  
-  g1 <- ggplot(
-    subset(
-      dta, 
-      subset= (year==this_year & age <= max_age & age >= min_age)
-    ),
-    aes(x=age, y=ratio)
-  )
-  g2 <- g1 + geom_line()
-  g3 <- g2 + facet_wrap(~ country, ncol=5)
-  g4 <- g3 + labs(y="Mortality rate ratio", x="Age (years)") 
-  g5 <- g4 + scale_y_log10(limits=c(0.1, 100))
-  g6 <- g5 + theme_minimal() + ggtitle(this_year)
-  print(g6)
-  dev.off()
-}
-
-years <- 1900:2010
-
-l_ply(years, spool_ratios)
-
-############################################
-
-
-# Ratio curves, period, 1970 only -----------------------------------------
-
-g1 <- ggplot(
-  data=subset(
-    rates_wide,
-    subset=age <=60 & year==1970
-  ),
-  aes(x=age, y=ratio)
-)
-
-g2 <- g1 + geom_line()
-g3 <- g2 + facet_wrap(~ country, ncol=5)
-g4 <- g3 + labs(y="Mortality rate ratio", x="Age (years)") 
-g5 <- g4 + scale_y_log10()
-g6 <- g5 + theme_minimal()
-print(g6)
+counts <- read.csv("data/counts.csv") %>%
+  tbl_df
 ####################################################################################
 
 
-
-
-counts <- counts %>%
-  tbl_df
+# Derived data ------------------------------------------------------------
 
 
 
@@ -304,9 +203,7 @@ draw_fun <- function(x, max_age=50,
   print(p3)
   
   dev.off()  
-  #   while(names(dev.cur())[1] !=("RStudioGD" | "null device")){
-  #     dev.off()
-  #   }
+
 }
 
 d_ply(
@@ -338,7 +235,8 @@ countries_to_keep <- c(
   "SWE", "JPN", "CHE", "USA" 
 )
 
-derived_2 <- derived  %>% filter(country %in% countries_to_keep)
+derived_2 <- derived  %>% 
+  filter(country %in% countries_to_keep)
 
 derived_2$country <- revalue(
   derived_2$country,
@@ -357,15 +255,16 @@ derived_2$country <- revalue(
 derived_2 <- derived_2 %>%
   filter(year >=1933 & year <= 2010 & age <=60)
 
+
 derived_2$country <- droplevels(derived_2$country)
 
-levels(derived_2$country) <- c(
-  "Canada", "England & Wales", "The Netherlands", "France",
-  "Sweden", "Japan", "Switzerland", "United States of America"
+derived_2$country <- factor(derived_2$country, 
+                            levels=c("Canada", "England & Wales", "The Netherlands", "France",
+                                     "Sweden", "Japan", "Switzerland", "United States of America")
+                            
+                            )
   
-)                               
 
-levels(derived_2$country) <- rev(levels(derived_2$country))
 
 tmp <- max(
   abs(c(min(derived_2$log_ratio, na.rm=T), max(derived_2$log_ratio, na.rm=T)))
@@ -418,18 +317,6 @@ print(p3)
 dev.off()
 
 
-this_country <- x$country[1]
-
-png(
-  filename=paste0(
-    out_dir,
-    "excess_",
-    this_country, "_(", min_year, "_", max_year, ").png"),
-  width=25,
-  height=25,
-  unit="cm", res=300
-)
-print(p3)
 
 
 # Borrowing from : 
@@ -642,3 +529,109 @@ d_ply(
   .progress="text"
 )
 
+
+# Spooling ----------------------------------------------------------------
+
+#########################
+
+### What I want now: 
+
+
+# Bathtub curves, period, 2005 --------------------------------------------
+
+png("images/male_female_mort_tile_2005.png", height=1000, width=800)
+this_year <- 2005
+
+g1 <- ggplot(
+  subset(rates, year==this_year & sex!="total" & age <=80),
+  aes(x=age, y=death_rate)
+)
+
+g2 <- g1 + geom_line(aes(colour=sex, linetype=sex))
+g3 <- g2 + facet_wrap(~ country, ncol=5)
+g4 <- g3 + labs(y="Death rate", x="Age (years)") 
+g5 <- g4 + scale_y_log10()
+g6 <- g5 + theme_minimal() + ggtitle(this_year)
+print(g6)
+
+dev.off()
+
+# Bathtub curves, period, spool by year -----------------------------------
+
+spool_bathtubs <- function(this_year, dta=rates, min_age = 0, max_age = 80){
+  png(
+    paste0("images/bathtubs/bathtubs_", this_year, ".png"),
+    height=1000, width=800
+  )
+  
+  g1 <- ggplot(
+    subset(
+      dta, 
+      subset= (year==this_year & sex !="total" & age <= max_age & age >= min_age)
+    ),
+    aes(x=age, y=death_rate)
+  )
+  g2 <- g1 + geom_line(aes(colour=sex, linetype=sex))
+  g3 <- g2 + facet_wrap(~ country, ncol=5)
+  g4 <- g3 + labs(y="Death rate", x="Age (years)") 
+  g5 <- g4 + scale_y_log10(limits=c(0.0001, 0.1))
+  g6 <- g5 + theme_minimal() + ggtitle(this_year)
+  print(g6)
+  dev.off()
+}
+
+years <- 1900:2010
+
+l_ply(years, spool_bathtubs)
+
+
+
+
+# Ratio curves, period, spool by year -------------------------------------
+
+
+spool_ratios <- function(this_year, dta=rates_wide, min_age = 0, max_age = 60){
+  png(
+    paste0("images/ratios/ratios_", this_year, ".png"),
+    height=1000, width=800
+  )
+  
+  g1 <- ggplot(
+    subset(
+      dta, 
+      subset= (year==this_year & age <= max_age & age >= min_age)
+    ),
+    aes(x=age, y=ratio)
+  )
+  g2 <- g1 + geom_line()
+  g3 <- g2 + facet_wrap(~ country, ncol=5)
+  g4 <- g3 + labs(y="Mortality rate ratio", x="Age (years)") 
+  g5 <- g4 + scale_y_log10(limits=c(0.1, 100))
+  g6 <- g5 + theme_minimal() + ggtitle(this_year)
+  print(g6)
+  dev.off()
+}
+
+years <- 1900:2010
+
+l_ply(years, spool_ratios)
+
+############################################
+
+
+# Ratio curves, period, 1970 only -----------------------------------------
+
+g1 <- ggplot(
+  data=subset(
+    rates_wide,
+    subset=age <=60 & year==1970
+  ),
+  aes(x=age, y=ratio)
+)
+
+g2 <- g1 + geom_line()
+g3 <- g2 + facet_wrap(~ country, ncol=5)
+g4 <- g3 + labs(y="Mortality rate ratio", x="Age (years)") 
+g5 <- g4 + scale_y_log10()
+g6 <- g5 + theme_minimal()
+print(g6)
