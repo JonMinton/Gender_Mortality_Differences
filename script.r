@@ -47,9 +47,8 @@ source("scripts/manage_data.r")
 
 ### What I want now: 
 
-# tile wrap
-# male and females as different lines on same graphs
-# ratios as separate tile wrap
+
+# Bathtub curves, period, 2005 --------------------------------------------
 
 png("images/male_female_mort_tile_2005.png", height=1000, width=800)
 this_year <- 2005
@@ -68,7 +67,7 @@ print(g6)
 
 dev.off()
 
-# Spool the above for all years
+# Bathtub curves, period, spool by year -----------------------------------
 
 spool_bathtubs <- function(this_year, dta=rates, min_age = 0, max_age = 80){
   png(
@@ -96,18 +95,11 @@ years <- 1900:2010
 
 l_ply(years, spool_bathtubs)
 
-# To do : 
-# 1) make country labels neater
-# 2) remove countries with few observations
-# 3) fix Germany (East, West etc)?
-# 4) consider doing for other years
-
-# 
-#### males per female
 
 
 
-##################
+# Ratio curves, period, spool by year -------------------------------------
+
 
 spool_ratios <- function(this_year, dta=rates_wide, min_age = 0, max_age = 60){
   png(
@@ -138,6 +130,8 @@ l_ply(years, spool_ratios)
 ############################################
 
 
+# Ratio curves, period, 1970 only -----------------------------------------
+
 g1 <- ggplot(
   data=subset(
     rates_wide,
@@ -154,11 +148,9 @@ g6 <- g5 + theme_minimal()
 print(g6)
 ####################################################################################
 
-# TO DO
-# 1) Function for d_ply for automation production for different 
-# countries
-# 2) change labels of legends to reflect rates per 10000
-# 3) automate range considered for country
+
+# ratio plots, spooled ----------------------------------------------------
+
 
 draw_fun <- function(x, max_age=50, 
                     min_year=1933, 
@@ -245,8 +237,9 @@ d_ply(
 
 
 
-#########################################################################################
-# age-mortality, males and females, and ratios, for USA, in years 1933 and 2010
+
+# USA, period mortality, 1933 and 2010 ------------------------------------
+
 
 rates_usa <- subset(
   rates, 
@@ -272,14 +265,10 @@ print(g6)
 dev.off()
 
 
-### Excess plots as levelplots only - reds only - dif scale
+
+# Ratios, reds only, spooled ----------------------------------------------
 
 
-# TO DO
-# 1) Function for d_ply for automation production for different 
-# countries
-# 2) change labels of legends to reflect rates per 10000
-# 3) automate range considered for country
 
 draw_fun <- function(x, max_age=50, 
                      min_year=1950, 
