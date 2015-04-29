@@ -32,7 +32,12 @@ RequiredPackages(
     "ggplot2",
     "stringr",
     "car",
-    "RColorBrewer"
+    "RColorBrewer",
+    "fields",
+    "spatstat",
+    "tidyr",
+    "dplyr"
+    
   )
 )
 
@@ -149,27 +154,97 @@ print(g6)
 ####################################################################################
 
 
-# ratio plots, spooled ----------------------------------------------------
 
+
+counts <- counts %>%
+  tbl_df
+
+
+
+derived <- counts  %>% 
+  mutate(death_rate = death_count/population_count)  %>% 
+  select(-death_count, -population_count)  %>% 
+  filter(sex!="total")  %>% 
+  spread(key=sex, value=death_rate)  %>% 
+  mutate(
+    difference = male - female, 
+    ratio = (male+0.000001)/(female+0.000001), # Small continuity correction 
+    log_ratio = log(ratio), 
+    per_10thousand = difference * 10000
+    )
+
+
+## Blurring differences 
+
+# Want to do some smoothing to make the contour lines less busy
+fn <- function(input, smooth_par=2){
+  this_country <- input$country[1]
+  
+  dta <- input %>%
+    select(year, age, difference) %>%
+    spread(key=age, value=difference) 
+  ages <- names(dta)[-1]
+  years <- dta$year
+  dta$year <- NULL
+  dta <- as.matrix(dta)
+  rownames(dta) <- years
+  colnames(dta) <- ages
+  dta_blurred <- as.matrix(blur(as.im(dta), sigma=smooth_par))  
+  rownames(dta_blurred) <- rownames(dta)
+  colnames(dta_blurred) <- colnames(dta)
+  output <- data.frame(
+    year=years, 
+    country=this_country,
+    dta_blurred
+  )
+  output <- output %>%
+    gather(key=age, value=difference, -year, -country)
+  
+  output$age <- output$age %>%
+    str_replace("X", "") %>%
+    as.character %>%
+    as.numeric
+  
+  return(output)
+}
+
+
+dif_logs_blurred <- derived %>%
+  select(country, year, age, difference) %>%
+  filter(age <=80) %>%
+  ddply(., .(country), fn, smooth_par=1.5)
+
+dif_logs_blurred <- dif_logs_blurred %>%
+  tbl_df
+
+derived <- dif_logs_blurred  %>% 
+  rename(dif_smoothed = difference)  %>% 
+  left_join(derived)  %>% 
+  mutate(per_10thousand_smoothed = dif_smoothed * 10000)  
+
+
+
+# ratio SCPs, spooled ----------------------------------------------------
+# Now using smoothed estimates
 
 draw_fun <- function(x, max_age=50, 
-                    min_year=1933, 
-                    max_year=2010,
+                     min_year=1933, 
+                     max_year=2010,
                      out_dir="images/excess/"
-                       ){
+){
   
   min_year <- max(
     min(x$year),
     min_year
-    )
+  )
   
   max_year <- min(
     max(x$year),
     max_year
-    )
+  )
   tmp <- max(
     abs(c(min(x$log_ratio, na.rm=T), max(x$log_ratio, na.rm=T)))
-    )
+  )
   tmp <- tmp - (tmp %% 0.25) + 0.25
   scale_limit <- max(4, tmp)
   rm(tmp)  
@@ -183,14 +258,14 @@ draw_fun <- function(x, max_age=50,
     at = seq(from= -scale_limit, to = scale_limit, by=0.25),
     col.regions = colorRampPalette(rev(brewer.pal(5, "RdBu")))(64),
     main = NULL,
-    xlab=list(label="Year", cex=2),
-    ylab=list(label="Age", cex=2),
+    xlab=list(label="Year", cex=1.4),
+    ylab=list(label="Age", cex=1.4),
     scales=list(cex=2),
-    colorkey=list(labels=list(cex=2))
+    colorkey=list(labels=list(cex=1.4))
   )
   
   tmp <- max(
-    abs(c(min(x$per_10thousand, na.rm=T), max(x$per_10thousand, na.rm=T)))
+    abs(c(min(x$per_10thousand_smoothed, na.rm=T), max(x$per_10thousand_smoothed, na.rm=T)))
   )
   tmp <- tmp - (tmp %% 5) + 5
   scale_limit <- max(300, tmp)
@@ -198,7 +273,8 @@ draw_fun <- function(x, max_age=50,
   
   
   p2 <- contourplot(
-    per_10thousand ~ year * age, 
+    per_10thousand_smoothed ~ year * age, 
+    
     data = subset(
       x,
       subset= age <= max_age & year >=min_year & year <=max_year
@@ -207,10 +283,10 @@ draw_fun <- function(x, max_age=50,
       from=-scale_limit,
       to=scale_limit,
       by=5
-      ),
+    ),
     col="grey",
-    labels=list(col="black", cex=1.5, fontface="bold")
-    )
+    labels=list(col="black", cex=1.4, fontface="bold")
+  )
   
   p3 <- p1 + p2
   
@@ -220,26 +296,187 @@ draw_fun <- function(x, max_age=50,
     filename=paste0(
       out_dir,
       "excess_",
-      this_country,
-      ".png"),
-    width=1000,
-    height=1000
-      )
+      this_country, "_(", min_year, "_", max_year, ").png"),
+    width=25,
+    height=25,
+    unit="cm", res=300
+  )
   print(p3)
   
   dev.off()  
-#   while(names(dev.cur())[1] !=("RStudioGD" | "null device")){
-#     dev.off()
-#   }
+  #   while(names(dev.cur())[1] !=("RStudioGD" | "null device")){
+  #     dev.off()
+  #   }
 }
 
 d_ply(
-  rates_wide,
+  derived,
   .(country),
   draw_fun,
   max_age=60,
   .progress="text"
+)
+
+
+# Lattice plot with many figures ------------------------------------------
+
+# Multiple plots in a single image ----------------------------------------
+
+# smoothed ratio plots, borrowing from lexis surface difference map --------
+
+# Periods : 1933 to 2010
+# Countries: USA, Canada, England & Wales, Netherlands, France,Sweden, Japan
+# Switzerland
+
+# Array 
+# Canada, England & Wales, Netherlands, France
+# Sweden, Japan, Switzerland, USA
+
+
+countries_to_keep <- c(
+  "CAN", "GBRTENW", "NLD", "FRATNP",
+  "SWE", "JPN", "CHE", "USA" 
+)
+
+derived_2 <- derived  %>% filter(country %in% countries_to_keep)
+
+derived_2$country <- revalue(
+  derived_2$country,
+  replace=c(
+    "CAN"="Canada",
+    "GBRTENW"="England & Wales",
+    "NLD"="The Netherlands",
+    "FRATNP"="France",
+    "SWE"="Sweden",
+    "JPN" = "Japan",
+    "CHE" = "Switzerland",
+    "USA"= "United States of America"
+  )                        
+)
+
+derived_2 <- derived_2 %>%
+  filter(year >=1933 & year <= 2010)
+
+derived_2$country <- droplevels(derived_2$country)
+
+levels(derived_2$country) <- c(
+  "Canada", "England & Wales", "The Netherlands", "France",
+  "Sweden", "Japan", "Switzerland", "United States of America"
+  
+)                               
+
+levels(derived_2$country) <- rev(levels(derived_2$country))
+
+tmp <- max(
+  abs(c(min(x$log_ratio, na.rm=T), max(x$log_ratio, na.rm=T)))
+)
+tmp <- tmp - (tmp %% 0.25) + 0.25
+scale_limit <- max(4, tmp)
+rm(tmp)  
+
+p1 <- levelplot(
+  log_ratio ~ year * age | country, 
+  data = derived_2, layout = c(4,2),
+  at = seq(from= -scale_limit, to = scale_limit, by=0.25),
+  col.regions = colorRampPalette(rev(brewer.pal(5, "RdBu")))(64),
+  main = NULL,
+  xlab=list(label="Year", cex=1.4),
+  ylab=list(label="Age", cex=1.4),
+  scales=list(cex=1.4, alternating=3),
+  colorkey=list(labels=list(cex=1.4)),
+  par.settings=list(strip.background=list(col="lightgrey"))
+)
+
+tmp <- max(
+  abs(c(min(x$per_10thousand_smoothed, na.rm=T), max(x$per_10thousand_smoothed, na.rm=T)))
+)
+tmp <- tmp - (tmp %% 5) + 5
+scale_limit <- max(300, tmp)
+rm(tmp)  
+
+
+p2 <- contourplot(
+  per_10thousand_smoothed ~ year * age | country, 
+  data = derived_2,   layout = c(4,2),
+  at=seq(
+    from=-scale_limit,
+    to=scale_limit,
+    by=5
+  ),
+  col="grey",
+  labels=list(cex=0.9)
+)
+
+
+p3 <- p1 + p2
+tiff(
+  "images/tiled_difference.tiff",  
+  height=20, width=40,
+  units="cm", res=300
+)
+print(p3)
+dev.off()
+
+
+this_country <- x$country[1]
+
+png(
+  filename=paste0(
+    out_dir,
+    "excess_",
+    this_country, "_(", min_year, "_", max_year, ").png"),
+  width=25,
+  height=25,
+  unit="cm", res=300
+)
+print(p3)
+
+
+# Borrowing from : 
+# http://stackoverflow.com/questions/17022379/image-smoothing-in-r
+
+
+
+# clp - composite plot, log -----------------------------------------------
+
+tiff(
+  "figures/clp_all.tiff",  
+  height=20, width=40,
+  units="cm", res=300
+)
+all_lev <- dif_logs %>%
+  filter(sex!="total" & country !="europe" & age <=90) %>%
+  levelplot(
+    lmort ~ year * age | country + sex,
+    data=., 
+    region=T,
+    ylab="Age in years",
+    xlab="Year",
+    at = seq(from= -1.2, to = 1.2, by=0.2),
+    col.regions = colorRampPalette(rev(brewer.pal(6, "RdBu")))(64),
+    scales=list(alternating=3),
+    main=NULL,
+    par.settings=list(strip.background=list(col="lightgrey"))
   )
+
+all_cont <- dif_logs_blurred %>%
+  filter(sex!="total" & country !="europe" & age <=80) %>%
+  contourplot(
+    lmort ~ year + age | country + sex, 
+    data=.,
+    region=F,
+    ylab="",
+    xlab="",
+    scales=list(NULL),
+    at=0,
+    labels=F,
+    main=NULL
+  )
+
+print(all_lev + all_cont)
+dev.off()
+
+
 
 
 
