@@ -122,6 +122,32 @@ derived <- dif_logs_blurred  %>%
   mutate(per_10thousand_smoothed = dif_smoothed * 10000)  
 
 
+# New fig 2a at 300dpi ----------------------------------------------------
+
+derived %>%
+  filter(country=="USA" & year %in% c(1933, 2010) & age <= 60) %>%
+  arrange(year, age) %>%
+  
+  ggplot(data=., ) +
+  geom_line(aes(x=age, y=ratio)) + 
+  geom_ribbon(aes(x=age, ymax=ratio, ymin=1, fill="red", alpha=0.4)) +
+  facet_wrap( ~ year) + 
+  labs(x="Age (years)", y="Mortality rate ratio") + 
+  theme(legend.position="none")
+ggsave(filename="images/new_2a.tiff", width=12, height=6, units="cm")
+
+
+# new fig 2b at 300dpi ----------------------------------------------------
+
+derived  %>% 
+  filter(country =="USA" & year %in% c(1933, 2010))  %>% 
+  arrange(year, age)  %>% 
+  ggplot(data=.) +
+  geom_line(aes(x=age, y=ratio)) + 
+  facet_wrap(~year) + 
+  labs(x="Age (Years)", y="Ratio of death rates (male:female)")
+ggsave(filename="images/new_2b.tiff", width=16, height=8, units="cm")
+
 
 # ratio SCPs, spooled ----------------------------------------------------
 # Now using smoothed estimates
@@ -561,28 +587,28 @@ dev.off()
 spool_bathtubs <- function(this_year, dta=rates, min_age = 0, max_age = 80){
   png(
     paste0("images/bathtubs/bathtubs_", this_year, ".png"),
-    height=1000, width=800
+    height=20, width=20, units="cm", res=300
   )
   
-  g1 <- ggplot(
-    subset(
-      dta, 
-      subset= (year==this_year & sex !="total" & age <= max_age & age >= min_age)
-    ),
-    aes(x=age, y=death_rate)
-  )
-  g2 <- g1 + geom_line(aes(colour=sex, linetype=sex))
-  g3 <- g2 + facet_wrap(~ country, ncol=5)
-  g4 <- g3 + labs(y="Death rate", x="Age (years)") 
-  g5 <- g4 + scale_y_log10(limits=c(0.0001, 0.1))
-  g6 <- g5 + theme_minimal() + ggtitle(this_year)
-  print(g6)
+  p <- derived %>%
+    select(year, country, age, female, male) %>%
+    gather(key=sex, value=death_rate, -year, -country, -age) %>%
+    filter(year==this_year & age <= max_age & age >= min_age) %>%
+    ggplot(data=., aes(x=age, y=death_rate)) +
+    geom_line(aes(colour=sex, linetype=sex)) + 
+    facet_wrap( ~ country, ncol = 5) + 
+    labs (x="Age (years)", y="Death rate") +
+    scale_y_log10(limits=c(0.001, 0.1)) +
+    theme_minimal() +
+    ggtitle(this_year)
+  
+  print(p)
   dev.off()
 }
 
 years <- 1900:2010
 
-l_ply(years, spool_bathtubs)
+l_ply(years, spool_bathtubs, .progress="text")
 
 
 
@@ -593,28 +619,25 @@ l_ply(years, spool_bathtubs)
 spool_ratios <- function(this_year, dta=rates_wide, min_age = 0, max_age = 60){
   png(
     paste0("images/ratios/ratios_", this_year, ".png"),
-    height=1000, width=800
+    height=25, width=20, res=300, units="cm"
   )
   
-  g1 <- ggplot(
-    subset(
-      dta, 
-      subset= (year==this_year & age <= max_age & age >= min_age)
-    ),
-    aes(x=age, y=ratio)
-  )
-  g2 <- g1 + geom_line()
-  g3 <- g2 + facet_wrap(~ country, ncol=5)
-  g4 <- g3 + labs(y="Mortality rate ratio", x="Age (years)") 
-  g5 <- g4 + scale_y_log10(limits=c(0.1, 100))
-  g6 <- g5 + theme_minimal() + ggtitle(this_year)
-  print(g6)
+  p <- derived %>%
+    filter(year==this_year & age <= max_age & age >=min_age) %>%
+    ggplot(data=., aes(x=age, y=ratio)) +
+    geom_line() +
+    facet_wrap( ~ country, ncol=5) + 
+    labs(x="Age (years)", y="Mortality rate ratio") + 
+    scale_y_log10(limits=c(0.1, 100)) +
+    theme_minimal() + 
+    ggtitle(this_year)
+  print(p)
   dev.off()
 }
 
 years <- 1900:2010
 
-l_ply(years, spool_ratios)
+l_ply(years, spool_ratios, .progress="text")
 
 ############################################
 
