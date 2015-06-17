@@ -15,31 +15,21 @@ rm(list=ls())
 # Run some of the existing scripts and analyses using the newer data : use this to produce the 
 # derived data 
 
-source("Scripts/LoadPackages.R")
 
-RequiredPackages(
-  c(
-    "animation",
-    "plyr",
-    "reshape2",
-    "lattice",
-    "latticeExtra",
-    "repmis",
-    "RCurl",
-    "devtools",
-    "httr",
-    "digest",
-    "ggplot2",
-    "stringr",
-    "car",
-    "RColorBrewer",
-    "fields",
-    "spatstat",
-    "tidyr",
-    "dplyr"
-    
-  )
-)
+require(plyr)
+require(stringr)
+require(tidyr)
+require(dplyr)
+
+require(lattice)
+require(latticeExtra)
+require(ggplot2)
+require(rgl)
+require(RColorBrewer)
+
+require(spatstat)
+require(fields)
+
 
 
 # Counts is the population count and death count data from the HMD in a single file
@@ -111,7 +101,7 @@ fn <- function(input, smooth_par=2){
 dif_logs_blurred <- derived %>%
   select(country, year, age, difference) %>%
   filter(age <=80) %>%
-  ddply(., .(country), fn, smooth_par=1.5)
+  ddply(., .(country), fn, smooth_par=1.0)
 
 dif_logs_blurred <- dif_logs_blurred %>%
   tbl_df
@@ -127,8 +117,7 @@ derived <- dif_logs_blurred  %>%
 derived %>%
   filter(country=="USA" & year %in% c(1933, 2010) & age <= 60) %>%
   arrange(year, age) %>%
-  
-  ggplot(data=., ) +
+  ggplot(data=.) +
   geom_line(aes(x=age, y=ratio)) + 
   geom_ribbon(aes(x=age, ymax=ratio, ymin=1, fill="red", alpha=0.4)) +
   facet_wrap( ~ year) + 
@@ -183,10 +172,10 @@ draw_fun <- function(x, max_age=50,
     at = seq(from= -scale_limit, to = scale_limit, by=0.25),
     col.regions = colorRampPalette(rev(brewer.pal(5, "RdBu")))(64),
     main = NULL,
-    xlab=list(label="Year", cex=1.4),
-    ylab=list(label="Age", cex=1.4),
-    scales=list(cex=2),
-    colorkey=list(labels=list(cex=1.4))
+    xlab=list(label="Year", cex=1.2),
+    ylab=list(label="Age", cex=1.2),
+    scales=list(cex=1.2),
+    colorkey=list(labels=list(cex=1.2))
   )
   
   tmp <- max(
@@ -209,8 +198,9 @@ draw_fun <- function(x, max_age=50,
       to=scale_limit,
       by=5
     ),
-    col="grey",
-    labels=list(col="black", cex=1.4, fontface="bold")
+    col="darkgrey",
+    labels=list(col="black", cex=1.2),
+    labels.stype="align"
   )
   
   p3 <- p1 + p2
@@ -305,10 +295,10 @@ p1 <- levelplot(
   at = seq(from= -scale_limit, to = scale_limit, by=0.25),
   col.regions = colorRampPalette(rev(brewer.pal(5, "RdBu")))(64),
   main = NULL,
-  xlab=list(label="Year", cex=1.4),
-  ylab=list(label="Age", cex=1.4),
-  scales=list(cex=1.4, alternating=3),
-  colorkey=list(labels=list(cex=1.4)),
+  xlab=list(label="Year", cex=1.2),
+  ylab=list(label="Age", cex=1.2),
+  scales=list(cex=1.2, alternating=1),
+  colorkey=list(labels=list(cex=1.2)),
   par.settings=list(strip.background=list(col="lightgrey"))
 )
 
@@ -328,14 +318,14 @@ p2 <- contourplot(
     to=scale_limit,
     by=5
   ),
-  col="grey",
+  col="darkgrey",
   labels=list(cex=0.9)
 )
 
 
 p3 <- p1 + p2
-tiff(
-  "images/tiled_difference.tiff",  
+png(
+  "images/tiled_difference.png",  
   height=20, width=40,
   units="cm", res=300
 )
