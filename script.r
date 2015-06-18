@@ -398,9 +398,10 @@ counts %>%
   mutate(death_rate = death_count / population_count) %>% 
   ggplot(.) +
   geom_line(aes(x=age, y=death_rate, group = Sex, colour=Sex, linetype=Sex)) + 
-  facet_wrap(~ year) + 
-  theme(legend.position="top") + 
+  facet_wrap(~ year) +
   scale_y_log10() + 
+  theme_minimal() + 
+  theme(legend.position="bottom") + 
   labs(y="Death rate", x="Age (years)") 
 
 ggsave(filename="images/usa_1933_2010.png", 
