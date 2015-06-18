@@ -135,7 +135,10 @@ derived  %>%
   geom_line(aes(x=age, y=ratio)) + 
   facet_wrap(~year) + 
   labs(x="Age (Years)", y="Ratio of death rates (male:female)")
-ggsave(filename="images/new_2b.tiff", width=16, height=8, units="cm")
+
+ggsave(filename="images/new_2b.tiff", width=16, height=8, units="cm", dpi=300)
+
+
 
 
 # ratio SCPs, spooled ----------------------------------------------------
@@ -386,30 +389,24 @@ dev.off()
 
 # USA, period mortality, 1933 and 2010 ------------------------------------
 
+counts %>% 
+  filter(
+    country=="USA" & sex !="total" & age <=80 &
+      year %in% c(1933, 2010)
+    ) %>%
+  mutate(Sex = ifelse(sex=="male", "Male", "Female")) %>% 
+  mutate(death_rate = death_count / population_count) %>% 
+  ggplot(.) +
+  geom_line(aes(x=age, y=death_rate, group = Sex, colour=Sex, linetype=Sex)) + 
+  facet_wrap(~ year) + 
+  theme(legend.position="top") + 
+  scale_y_log10() + 
+  labs(y="Death rate", x="Age (years)") 
 
-rates_usa <- subset(
-  rates, 
-  subset=country=="USA" & (year == 1933 | year == 2010) & sex !="total" 
-  )
-
-
-
-png("images/usa_1933_2010.png", height=500, width=800)
-
-g1 <- ggplot(
-  subset(rates_usa, subet = age <= 80),
-  aes(x=age, y=death_rate)
-)
-
-g2 <- g1 + geom_line(aes(colour=sex, linetype=sex))
-g3 <- g2 + facet_wrap(~ year)
-g4 <- g3 + labs(y="Death rate", x="Age (years)") 
-g5 <- g4 + scale_y_log10()
-g6 <- g5 + theme_minimal() 
-print(g6)
-
-dev.off()
-
+ggsave(filename="images/usa_1933_2010.png", 
+       height=10, width=10, units="cm",
+       dpi=300
+       )
 
 
 # Ratios, reds only, spooled ----------------------------------------------
